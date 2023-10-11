@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Manager</title>
+</head>
+<body>
+    <h1>Task Manager</h1>
+
+    <form id="task-form">
+        <input type="text" id="title" placeholder="Title" required>
+        <input type="text" id="description" placeholder="Description" required>
+        <select id="status">
+            <option value="Pending">Pending</option>
+            <option value="Completed">Completed</option>
+            
+        </select>
+        <button type="submit">Add Task</button>
+    </form>
+
+    <ul id="task-list"></ul>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const taskForm = document.getElementById('task-form');
+    const taskList = document.getElementById('task-list');
+
+    //####################################display tasks#########################
+    function fetchTasks() {
+        fetch('/api/tasks/')
+            .then(response => response.json())
+            .then(data => {
+                taskList.innerHTML = '';
+                data.forEach(task => {
+                    const li = document.createElement('li');
+                    li.textContent = `${task.title} - ${task.status}`;
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', () => deleteTask(task.id));
+                    li.appendChild(deleteButton);
+                    taskList.appendChild(li);
+                });
+            });
+    }
+
+    // ##########################create a new task#########################
+    function createTask(title, description, status) {
+        fetch('/api/tasks/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title, description, status }),
+        })
+            .then(() => {
+                taskForm.reset();
+                fetchTasks();
+            });
+    }
+
+    // ############################### delete a task################################
+    function deleteTask(taskId) {
+        fetch(`/api/tasks/${taskId}/`, {
+            method: 'DELETE',
+        })
+            .then(() => fetchTasks());
+    }
+
+    // Add a submit event listener to the form
+    taskForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        const status = document.getElementById('status').value;
+        createTask(title, description, status);
+    });
+
+    // Fetch and display tasks when the page loads
+    fetchTasks();
+});
+
+
+
+
+
+
+// Function to update a task using PUT request
+function updateTask(taskId, title, description, status) {
+    fetch(`/api/tasks/${taskId}/`, {
+        method: 'PUT',  // Use PUT for full updates
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: taskId, title, description, status }),
+    })
+        .then(() => {
+            fetchTasks();
+            document.getElementById('update-title').value = '';
+            document.getElementById('update-description').value = '';
+            document.getElementById('update-button').style.display = 'none';
+        });
+}
+
+// Function to set the update form when clicking on a task
+function setUpdateForm(task) {
+    const updateTitleInput = document.getElementById('update-title');
+    const updateDescriptionInput = document.getElementById('update-description');
+    const updateStatusInput = document.getElementById('status');
+    const updateButton = document.getElementById('update-button');
+
+    updateTitleInput.value = task.title;
+    updateDescriptionInput.value = task.description;
+    updateStatusInput.value = task.status;
+    updateButton.style.display = 'block';
+
+    updateButton.addEventListener('click', () => {
+        const newTitle = updateTitleInput.value;
+        const newDescription = updateDescriptionInput.value;
+        const newStatus = updateStatusInput.value;
+        updateTask(task.id, newTitle, newDescription, newStatus);
+    });
+}
+
+</script>
+
+</body>
+</html>
